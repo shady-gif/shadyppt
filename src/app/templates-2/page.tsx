@@ -2,9 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, FileText } from "lucide-react";
 
-import { templatesTwoManifest } from "@/features/presentations/data/templates-2";
+import { getTemplateManagerState } from "@/features/presentations/lib/template-manager-store";
 
-export default function TemplatesTwoPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TemplatesTwoPage() {
+  const { templates } = await getTemplateManagerState();
+
   return (
     <main className="min-h-screen bg-[#11100e] px-5 py-5 text-white">
       <div className="mx-auto max-w-6xl">
@@ -28,7 +32,7 @@ export default function TemplatesTwoPage() {
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {templatesTwoManifest.map((template) => (
+          {templates.map((template) => (
             <Link
               key={template.id}
               href={template.href}
