@@ -10,6 +10,7 @@ import {
   Plus,
   Save,
   Trash2,
+  Upload,
 } from "lucide-react";
 
 import type { TemplateTwoSummary } from "@/features/presentations/data/templates-2";
@@ -54,6 +55,7 @@ export function TemplateAdminClient() {
   const [editable, setEditable] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
 
   const canSave = useMemo(
@@ -130,6 +132,97 @@ export function TemplateAdminClient() {
     }
   }
 
+  async function uploadTemplateAsset(
+    kind: "pptx" | "thumbnail",
+    file: File,
+  ) {
+    if (!password.trim()) {
+      throw new Error("Enter your admin password before uploading.");
+    }
+
+    const formData = new FormData();
+    formData.append("kind", kind);
+    formData.append("file", file);
+
+    const response = await fetch("/api/templates-2/upload", {
+      method: "POST",
+      headers: {
+        "x-admin-password": password,
+      },
+      body: formData,
+    });
+
+    const data = (await response.json()) as {
+      url?: string;
+      fileName?: string;
+      error?: string;
+    };
+
+    if (!response.ok || !data.url) {
+      throw new Error(data.error || "Upload failed.");
+    }
+
+    return data;
+  }
+
+  async function addUploadedPpt(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    setIsUploading(true);
+    setMessage("");
+
+    try {
+      const upload = await uploadTemplateAsset("pptx", file);
+      const uploadedUrl = upload.url || "";
+      const title = file.name.replace(/\.pptx$/i, "").trim() || "Uploaded PPT";
+      const id =
+        title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "") || `uploaded-${Date.now()}`;
+
+      setTemplates((currentTemplates) => [
+        ...currentTemplates,
+        {
+          id,
+          title,
+          href: uploadedUrl,
+          slideCount: 1,
+          thumbnail: "",
+          source: uploadedUrl,
+        },
+      ]);
+      setMessage(
+        "PPT uploaded. Add a thumbnail if you want, then click Save changes.",
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Upload failed.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  async function uploadThumbnail(index: number, file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    setIsUploading(true);
+    setMessage("");
+
+    try {
+      const upload = await uploadTemplateAsset("thumbnail", file);
+      updateTemplate(index, "thumbnail", upload.url || "");
+      setMessage("Thumbnail uploaded. Click Save changes to publish it.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Upload failed.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#11100e] px-5 py-5 text-white">
       <div className="mx-auto max-w-6xl">
@@ -172,9 +265,8 @@ export function TemplateAdminClient() {
               Storage: {storage === "redis" ? "Connected" : "Not connected"}
             </p>
             <p className="mt-1 text-sm leading-6 text-white/48">
-              Rename and reorder existing templates here. Adding a brand-new
-              template card works after you provide its route, thumbnail, and
-              PPT source paths.
+              Upload PPT files, rename cards, reorder templates, and publish the
+              changes to your public templates page.
             </p>
           </div>
 
@@ -197,6 +289,37 @@ export function TemplateAdminClient() {
             {message}
           </p>
         ) : null}
+
+        <section className="mb-5 rounded-lg border border-white/10 bg-white/[0.045] p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-medium text-white/80">Upload PPT</h2>
+              <p className="mt-1 text-sm leading-6 text-white/45">
+                This creates a template card that opens the uploaded PPT file.
+                Editable slide conversion can be added as the next step.
+              </p>
+            </div>
+
+            <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/10 bg-white px-4 text-sm font-semibold text-black transition hover:bg-white/90">
+              {isUploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Upload className="size-4" />
+              )}
+              {isUploading ? "Uploading..." : "Choose PPTX"}
+              <input
+                type="file"
+                accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                className="sr-only"
+                disabled={isUploading}
+                onChange={(event) => {
+                  void addUploadedPpt(event.target.files?.[0] || null);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </div>
+        </section>
 
         {isLoading ? (
           <div className="flex min-h-80 items-center justify-center text-white/45">
@@ -297,13 +420,32 @@ export function TemplateAdminClient() {
                     <span className="mb-1 block text-xs text-white/35">
                       Thumbnail
                     </span>
-                    <input
-                      value={template.thumbnail}
-                      onChange={(event) =>
-                        updateTemplate(index, "thumbnail", event.target.value)
-                      }
-                      className="h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none transition focus:border-white/35"
-                    />
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <input
+                        value={template.thumbnail}
+                        onChange={(event) =>
+                          updateTemplate(index, "thumbnail", event.target.value)
+                        }
+                        className="h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none transition focus:border-white/35"
+                      />
+                      <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/8 px-3 text-sm text-white/72 transition hover:bg-white/12 hover:text-white">
+                        <Upload className="size-4" />
+                        Upload
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          disabled={isUploading}
+                          onChange={(event) => {
+                            void uploadThumbnail(
+                              index,
+                              event.target.files?.[0] || null,
+                            );
+                            event.currentTarget.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
                   </label>
 
                   <label className="block sm:col-span-2">
