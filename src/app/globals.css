@@ -146,3 +146,37 @@
     transform: scale(1) translateY(0);
   }
 }
+
+@keyframes ppt-pop-up {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.04) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes ppt-jiggle {
+  0%,
+  100% {
+    transform: rotate(0deg) translateX(0);
+  }
+  20% {
+    transform: rotate(-1.5deg) translateX(-2px);
+  }
+  40% {
+    transform: rotate(1.5deg) translateX(2px);
+  }
+  60% {
+    transform: rotate(-1deg) translateX(-1px);
+  }
+  80% {
+    transform: rotate(1deg) translateX(1px);
+  }
+}

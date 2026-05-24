@@ -38,5 +38,53 @@
     "slideCount": 10,
     "thumbnail": "/templates-2/template-5/media/image1.png",
     "source": "/templates-2/template-5/source.pptx"
+  },
+  {
+    "id": "template-6",
+    "title": "Comicbook",
+    "href": "/templates-2/template-6",
+    "slideCount": 13,
+    "thumbnail": "/templates-2/template-6/media/image1.jpeg",
+    "source": "/templates-2/template-6/source.pptx"
+  },
+  {
+    "id": "template-7",
+    "title": "Diagrams 2",
+    "href": "/templates-2/template-7",
+    "slideCount": 15,
+    "thumbnail": "/templates-2/template-7/media/image1.png",
+    "source": "/templates-2/template-7/source.pptx"
+  },
+  {
+    "id": "template-8",
+    "title": "Visual F",
+    "href": "/templates-2/template-8",
+    "slideCount": 16,
+    "thumbnail": "/templates-2/template-8/media/image1.jpeg",
+    "source": "/templates-2/template-8/source.pptx"
+  },
+  {
+    "id": "template-9",
+    "title": "Modern",
+    "href": "/templates-2/template-9",
+    "slideCount": 10,
+    "thumbnail": "/templates-2/template-9/media/image1.png",
+    "source": "/templates-2/template-9/source.pptx"
+  },
+  {
+    "id": "template-10",
+    "title": "Video Should Try",
+    "href": "/templates-2/template-10",
+    "slideCount": 10,
+    "thumbnail": "/templates-2/template-10/media/image1.jpeg",
+    "source": "/templates-2/template-10/source.pptx"
+  },
+  {
+    "id": "template-11",
+    "title": "Cinematic F",
+    "href": "/templates-2/template-11",
+    "slideCount": 10,
+    "thumbnail": "/templates-2/template-11/media/image1.jpeg",
+    "source": "/templates-2/template-11/source.pptx"
   }
 ]

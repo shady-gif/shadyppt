@@ -1,5 +1,5 @@
-import { LandingPage } from "@/components/marketing/landing-page";
+import { MvpPptEditor } from "@/features/presentations/components/mvp-ppt-editor";
 
 export default function HomePage() {
-  return <LandingPage />;
+  return <MvpPptEditor />;
 }

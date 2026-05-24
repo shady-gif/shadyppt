@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import Link from "next/link";
 import {
   ArrowDown,
@@ -140,29 +141,25 @@ export function TemplateAdminClient() {
       throw new Error("Enter your admin password before uploading.");
     }
 
-    const formData = new FormData();
-    formData.append("kind", kind);
-    formData.append("file", file);
+    const extension = file.name.split(".").pop() || (kind === "pptx" ? "pptx" : "png");
+    const safeName =
+      file.name
+        .trim()
+        .toLowerCase()
+        .replace(/\.[^.]+$/, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || `${kind}-${Date.now()}`;
 
-    const response = await fetch("/api/templates-2/upload", {
-      method: "POST",
-      headers: {
-        "x-admin-password": password,
-      },
-      body: formData,
+    const blob = await upload(`templates/${kind}/${safeName}.${extension}`, file, {
+      access: "public",
+      handleUploadUrl: "/api/templates-2/upload",
+      clientPayload: JSON.stringify({ kind, password }),
     });
 
-    const data = (await response.json()) as {
-      url?: string;
-      fileName?: string;
-      error?: string;
+    return {
+      url: blob.url,
+      fileName: file.name,
     };
-
-    if (!response.ok || !data.url) {
-      throw new Error(data.error || "Upload failed.");
-    }
-
-    return data;
   }
 
   async function addUploadedPpt(file: File | null) {

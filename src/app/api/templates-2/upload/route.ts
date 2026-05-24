@@ -1,78 +1,59 @@
-import { put } from "@vercel/blob";
+import {
+  handleUpload,
+  type HandleUploadBody,
+} from "@vercel/blob/client";
+import { NextResponse } from "next/server";
 
 import { isTemplateAdminAuthorized } from "@/features/presentations/lib/template-manager-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function createSafeFileName(fileName: string) {
-  return fileName
-    .trim()
-    .toLowerCase()
-    .replace(/\.[^.]+$/, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+type UploadPayload = {
+  kind?: "pptx" | "thumbnail";
+  password?: string;
+};
 
 export async function POST(request: Request) {
-  const password = request.headers.get("x-admin-password");
+  const body = (await request.json()) as HandleUploadBody;
 
-  if (!isTemplateAdminAuthorized(password)) {
-    return Response.json(
-      { error: "Invalid admin password." },
-      { status: 401 },
-    );
-  }
+  try {
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (_pathname, clientPayload) => {
+        const payload = JSON.parse(clientPayload || "{}") as UploadPayload;
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return Response.json(
-      { error: "Blob storage is not connected." },
+        if (!isTemplateAdminAuthorized(payload.password || null)) {
+          throw new Error("Invalid admin password.");
+        }
+
+        if (payload.kind !== "pptx" && payload.kind !== "thumbnail") {
+          throw new Error("Invalid upload type.");
+        }
+
+        return {
+          allowedContentTypes:
+            payload.kind === "pptx"
+              ? [
+                  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                ]
+              : ["image/jpeg", "image/png", "image/webp", "image/gif"],
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({ kind: payload.kind }),
+        };
+      },
+      onUploadCompleted: async () => {},
+    });
+
+    return NextResponse.json(jsonResponse);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Could not prepare upload.",
+      },
       { status: 400 },
     );
   }
-
-  const formData = await request.formData();
-  const file = formData.get("file");
-  const kind = formData.get("kind");
-
-  if (!(file instanceof File)) {
-    return Response.json({ error: "Choose a file to upload." }, { status: 400 });
-  }
-
-  if (kind !== "pptx" && kind !== "thumbnail") {
-    return Response.json({ error: "Invalid upload type." }, { status: 400 });
-  }
-
-  if (
-    kind === "pptx" &&
-    file.type !==
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation" &&
-    !file.name.toLowerCase().endsWith(".pptx")
-  ) {
-    return Response.json(
-      { error: "Please upload a .pptx file." },
-      { status: 400 },
-    );
-  }
-
-  if (kind === "thumbnail" && !file.type.startsWith("image/")) {
-    return Response.json(
-      { error: "Please upload an image thumbnail." },
-      { status: 400 },
-    );
-  }
-
-  const extension = file.name.split(".").pop() || (kind === "pptx" ? "pptx" : "png");
-  const safeName = createSafeFileName(file.name) || `${kind}-${Date.now()}`;
-  const pathname = `templates/${kind}/${safeName}.${extension}`;
-  const blob = await put(pathname, file, {
-    access: "public",
-    addRandomSuffix: true,
-  });
-
-  return Response.json({
-    url: blob.url,
-    pathname: blob.pathname,
-    fileName: file.name,
-  });
 }
